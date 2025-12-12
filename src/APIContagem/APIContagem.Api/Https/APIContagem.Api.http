@@ -1,0 +1,6 @@
+@APIContagem.Api_HostAddress = http://localhost:5217
+
+GET {{APIContagem.Api_HostAddress}}/Counter/
+Accept: application/json
+
+###

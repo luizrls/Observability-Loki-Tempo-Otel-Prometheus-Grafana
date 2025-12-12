@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  api-a:
+    build: ../src/APIOrquestracao/APIOrquestracao.Api
+    ports:
+      - "5000:80"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
+  api-b:
+    build: ../src/APIContagem/APIContagem.Api
+    ports:
+      - "5001:80"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
