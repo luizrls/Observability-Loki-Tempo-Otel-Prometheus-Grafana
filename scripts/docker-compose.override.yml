@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  orquestracao:
+    build: ../src/APIOrquestracao/APIOrquestracao.Api
+    ports:
+      - "5000:8081"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+    environment:
+      # garante Kestrel escutando 0.0.0.0:8081 (opcional se já definido no Dockerfile)
+      - ASPNETCORE_URLS=http://+:8081
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      # aponta Loki dentro da rede docker para o serviço loki
+      - Loki__Uri=http://loki:3100
+      - Tempo__Uri=http://tempo:4317
+      - ApiContagem=http://contagem:8080
+
+  contagem:
+    build: ../src/APIContagem/APIContagem.Api
+    ports:
+      - "5001:8080"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+      - postgres
+    environment:
+      # substitui a connection string do appsettings.json para usar o serviço postgres do compose
+      - ConnectionStrings__BaseContagem=Server=postgres;Port=5432;Database=basecontagem;User Id=postgres;Password=Postgres2024!
+      # garante Kestrel escutando 0.0.0.0:8080 (opcional se já definido no Dockerfile)
+      - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      # aponta Loki dentro da rede docker para o serviço loki
+      - Loki__Uri=http://loki:3100
+      - Tempo__Uri=http://tempo:4317
