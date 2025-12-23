@@ -30,7 +30,7 @@ public class OrchestrationController : ControllerBase
 
         var urlApiContagem = _configuration["ApiContagem"]!;
         resultado.ContagemPostgres =
-            await _contagemClient.ObterContagemAsync(urlApiContagem);
+            await _contagemClient.ObterContagemAsync(urlApiContagem + "/Counter");
         _logger.LogInformation($"Valor contagem Redis: {resultado.ContagemPostgres!.ValorAtual}");
         
         return resultado;

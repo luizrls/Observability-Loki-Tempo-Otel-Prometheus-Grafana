@@ -9,6 +9,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.ConfigureSerilog(builder.Configuration);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration);
 //---------------------------------------------------------//
+//----------------- Reduce logs verbosity ----------------//
+builder.Logging.AddOpenTelemetry(options =>
+{
+    options.IncludeFormattedMessage = false;
+    options.IncludeScopes = false;
+});
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
+//---------------------------------------------------------//
+
+builder.Services.AddHealthChecks();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -23,6 +34,9 @@ app.UseSwaggerUI();
 
 app.UseAuthorization();
 app.UseSerilogRequestLogging();
+
+// Map health check endpoint
+app.MapHealthChecks("/health");
 
 app.MapControllers();
 
