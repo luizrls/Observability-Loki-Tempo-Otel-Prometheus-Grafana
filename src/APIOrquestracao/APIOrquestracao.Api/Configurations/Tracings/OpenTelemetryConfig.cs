@@ -50,7 +50,15 @@ namespace APIOrquestracao.Api.Configurations.Tracings
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
                     .AddProcessInstrumentation()
-                    .AddPrometheusExporter();
+                    .AddPrometheusExporter()
+                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                            .AddService(
+                                OpenTelemetryExtensions.ServiceName,
+                                serviceVersion: OpenTelemetryExtensions.ServiceVersion))
+                    .AddOtlpExporter(options =>
+                    {
+                        options.Endpoint = new Uri(configuration["Otel:Uri"]!);
+                    });
             });
 
             return services;
