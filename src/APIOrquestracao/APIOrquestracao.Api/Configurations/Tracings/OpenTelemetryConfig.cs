@@ -1,5 +1,6 @@
 ﻿using Npgsql;
 using OpenTelemetry;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System.Diagnostics;
@@ -24,6 +25,8 @@ namespace APIOrquestracao.Api.Configurations.Tracings
                         options.RecordException = false;
                     })
                     .AddHttpClientInstrumentation()
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
                     .AddNpgsql()
                     .SetSampler(new AlwaysOnSampler())
                     .AddOtlpExporter(options =>
@@ -39,6 +42,23 @@ namespace APIOrquestracao.Api.Configurations.Tracings
                         };
                     })
                     .AddConsoleExporter(); // <--- só para debug
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddProcessInstrumentation()
+                    .AddPrometheusExporter()
+                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                            .AddService(
+                                OpenTelemetryExtensions.ServiceName,
+                                serviceVersion: OpenTelemetryExtensions.ServiceVersion))
+                    .AddOtlpExporter(options =>
+                    {
+                        options.Endpoint = new Uri(configuration["Otel:Uri"]!);
+                    });
             });
 
             return services;

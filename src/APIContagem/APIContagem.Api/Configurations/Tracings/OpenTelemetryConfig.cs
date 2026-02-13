@@ -3,6 +3,7 @@ using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System.Diagnostics;
+using OpenTelemetry.Metrics;
 
 namespace APIContagem.Api.Configurations.Tracings
 {
@@ -22,9 +23,37 @@ namespace APIContagem.Api.Configurations.Tracings
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         options.RecordException = false;
+                        options.Filter = ctx =>
+                        {
+                            var path = ctx.Request.Path.ToString().ToLower();
+                            return !path.Contains("/health") &&
+                                   !path.Contains("/swagger") &&
+                                   !path.Contains("/favicon.ico") &&
+                                   !path.Contains("/metrics");
+                        };
+                        options.EnrichWithHttpRequest = (activity, request) =>
+                        {
+                            activity.SetTag("http.client_ip", request.HttpContext.Connection.RemoteIpAddress?.ToString());
+                        };
                     })
-                    .AddHttpClientInstrumentation()
-                    .AddNpgsql()
+                    .AddHttpClientInstrumentation(options =>
+                    {
+                        options.RecordException = true;
+                        options.FilterHttpRequestMessage = (httpRequestMessage) =>
+                        {
+                            var uri = httpRequestMessage.RequestUri?.ToString().ToLower() ?? "";
+                            return !uri.Contains("/health") &&
+                                   !uri.Contains("/swagger") &&
+                                   !uri.Contains("/getScriptTag") && // Elastic APM Server
+                                   !uri.Contains("10.0.0.145:8200") && // Elastic APM Server
+                                   !uri.Contains("/intake/v2/events"); // Elastic APM intake endpoint
+                        };
+                    })
+                    .AddSqlClientInstrumentation(options =>
+                    {
+                        options.RecordException = true;
+                    })
+                    .AddEntityFrameworkCoreInstrumentation()
                     .SetSampler(new AlwaysOnSampler())
                     .AddOtlpExporter(options =>
                     {
@@ -39,6 +68,22 @@ namespace APIContagem.Api.Configurations.Tracings
                         };
                     })
                     .AddConsoleExporter(); // <--- só para debug
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddPrometheusExporter()
+                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                            .AddService(
+                                OpenTelemetryExtensions.ServiceName,
+                                serviceVersion: OpenTelemetryExtensions.ServiceVersion))
+                    .AddOtlpExporter(options =>
+                    {
+                        options.Endpoint = new Uri(configuration["Otel:Uri"]!);
+                    });
             });
 
             return services;

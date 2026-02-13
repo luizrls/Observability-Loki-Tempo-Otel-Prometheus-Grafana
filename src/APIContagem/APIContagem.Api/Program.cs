@@ -44,6 +44,9 @@ app.UseSerilogRequestLogging();
 // Map health check endpoint
 app.MapHealthChecks("/health");
 
+// Map Prometheus scraping endpoint
+app.MapPrometheusScrapingEndpoint();
+
 app.MapControllers();
 
 app.Run();
